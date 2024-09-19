@@ -1,0 +1,163 @@
+import pygame
+import sys
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Constants
+WIDTH, HEIGHT = 800, 600
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+BLUE = (0, 0, 255)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+FPS = 60
+BALL_SPEED = [5, -5]
+PADDLE_SPEED = 10
+ROWS = 5  # Number of rows of bricks
+COLS = 10  # Number of columns of bricks
+
+# Set up display
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Brick Breaker")
+
+# Load fonts
+font = pygame.font.SysFont("Arial", 30)
+
+# Ball class
+class Ball:
+    def __init__(self):
+        self.rect = pygame.Rect(WIDTH // 2 - 15, HEIGHT // 2 - 15, 30, 30)
+        self.speed = BALL_SPEED
+
+    def move(self):
+        self.rect.x += self.speed[0]
+        self.rect.y += self.speed[1]
+
+        # Bounce off walls
+        if self.rect.left <= 0 or self.rect.right >= WIDTH:
+            self.speed[0] = -self.speed[0]
+        if self.rect.top <= 0:
+            self.speed[1] = -self.speed[1]
+
+# Paddle class
+class Paddle:
+    def __init__(self):
+        self.rect = pygame.Rect(WIDTH // 2 - 60, HEIGHT - 20, 120, 10)
+
+    def move(self, dx):
+        self.rect.x += dx
+        if self.rect.left < 0:
+            self.rect.left = 0
+        if self.rect.right > WIDTH:
+            self.rect.right = WIDTH
+
+# Brick class
+class Brick:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y, 75, 20)
+
+# Random brick setup
+def setup_bricks():
+    bricks = []
+    for row in range(ROWS):
+        for col in range(COLS):
+            if random.choice([True, False]):  # Randomly decide whether to place a brick
+                brick = Brick(col * 80 + 10, row * 30 + 50)
+                bricks.append(brick)
+    return bricks
+
+# Game loop
+def game_loop():
+    clock = pygame.time.Clock()
+    ball = Ball()
+    paddle = Paddle()
+    bricks = setup_bricks()
+    score = 0
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT]:
+            paddle.move(-PADDLE_SPEED)
+        if keys[pygame.K_RIGHT]:
+            paddle.move(PADDLE_SPEED)
+
+        ball.move()
+
+        # Check collisions
+        if ball.rect.colliderect(paddle.rect):
+            ball.speed[1] = -ball.speed[1]
+
+        for brick in bricks[:]:
+            if ball.rect.colliderect(brick.rect):
+                ball.speed[1] = -ball.speed[1]
+                bricks.remove(brick)
+                score += 1
+
+        # Check if the ball falls below the paddle
+        if ball.rect.top > HEIGHT:
+            break  # End the game if the ball goes below the paddle
+
+        # Check if all bricks are cleared
+        if not bricks:
+            bricks = setup_bricks()  # Reset bricks for a new random layout
+            ball.reset()  # Reset ball position for the next round
+            score += 10  # Bonus score for clearing a level
+
+        # Draw everything
+        screen.fill(BLACK)
+
+        # Draw bricks
+        for brick in bricks:
+            pygame.draw.rect(screen, BLUE, brick.rect)
+
+        # Draw paddle and ball
+        pygame.draw.rect(screen, GREEN, paddle.rect)
+        pygame.draw.ellipse(screen, RED, ball.rect)
+
+        # Draw score
+        score_text = font.render(f"Score: {score}", True, WHITE)
+        screen.blit(score_text, (10, 10))
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+    return score
+
+# Main function
+def main():
+    while True:
+        score = game_loop()
+
+        # Game over message
+        screen.fill(BLACK)
+        game_over_text = font.render("Game Over!", True, WHITE)
+        final_score_text = font.render(f"Final Score: {score}", True, WHITE)
+        replay_text = font.render("Press R to Replay or Q to Quit", True, WHITE)
+        screen.blit(game_over_text, (WIDTH // 2 - 60, HEIGHT // 2 - 30))
+        screen.blit(final_score_text, (WIDTH // 2 - 80, HEIGHT // 2 + 10))
+        screen.blit(replay_text, (WIDTH // 2 - 150, HEIGHT // 2 + 50))
+        pygame.display.flip()
+
+        # Wait for replay or quit
+        waiting = True
+        while waiting:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        waiting = False  # Restart the game
+                    elif event.key == pygame.K_q:
+                        pygame.quit()
+                        sys.exit()  # Quit the game
+
+if __name__ == "__main__":
+    main()
