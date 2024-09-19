@@ -60,13 +60,9 @@ class Obstacle(pygame.sprite.Sprite):
 
 # Button class
 class Button:
-    def __init__(self, text, pos, font, bg="black", feedback=""):
+    def __init__(self, text, pos, font, bg="black"):
         self.x, self.y = pos
         self.font = pygame.font.SysFont("Arial", font)
-        if feedback == "":
-            self.feedback = "text"
-        else:
-            self.feedback = feedback
         self.change_text(text, bg)
 
     def change_text(self, text, bg="black"):
@@ -108,8 +104,10 @@ def display_score():
     text = font.render(f"Score: {score}", True, WHITE)
     screen.blit(text, (10, 10))
 
-# Initialize start button
-start_button = Button("Start Game", (350, 275), 36, bg=BLUE, feedback="Start Game")
+# Initialize buttons
+start_button = Button("Start Game", (350, 275), 36, bg=BLUE)
+replay_button = Button("Replay", (350, 325), 36, bg=BLUE)
+quit_button = Button("Quit", (350, 375), 36, bg=BLUE)
 
 # Game state
 game_started = False
@@ -121,11 +119,32 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
-        if event.type == pygame.MOUSEBUTTONDOWN and not game_started:
-            if start_button.click(event):
-                game_started = True
-                game_over = False
-                score = 0
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if not game_started:
+                if start_button.click(event):
+                    game_started = True
+                    game_over = False
+                    score = 0
+                    # Reset obstacles
+                    obstacles.empty()
+                    for _ in range(10):
+                        obstacle = Obstacle()
+                        all_sprites.add(obstacle)
+                        obstacles.add(obstacle)
+            elif game_over:
+                if replay_button.click(event):
+                    game_started = True
+                    game_over = False
+                    score = 0
+                    # Reset obstacles
+                    obstacles.empty()
+                    for _ in range(10):
+                        obstacle = Obstacle()
+                        all_sprites.add(obstacle)
+                        obstacles.add(obstacle)
+                elif quit_button.click(event):
+                    pygame.quit()
+                    sys.exit()
 
     if game_started and not game_over:
         # Update all sprites
@@ -151,6 +170,8 @@ while True:
         if game_over:
             game_over_text = font.render("Game Over", True, WHITE)
             screen.blit(game_over_text, (350, 300))
+            replay_button.show()
+            quit_button.show()
     else:
         start_button.show()
 
@@ -159,4 +180,3 @@ while True:
 
     # Cap the frame rate
     clock.tick(60)
-
