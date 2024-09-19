@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import time
 
 # Initialize pygame
 pygame.init()
@@ -10,6 +11,7 @@ SCREEN_WIDTH, SCREEN_HEIGHT = 400, 400
 GRID_SIZE = 10  # 10x10 grid
 CELL_SIZE = SCREEN_WIDTH // GRID_SIZE
 NUM_MINES = 10
+TIME_LIMIT = 15  # 15 seconds timer
 
 # Colors
 BACKGROUND_COLOR = (189, 189, 189)
@@ -23,7 +25,7 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Minesweeper")
 
 # Font for rendering text
-font = pygame.font.Font(None, 36)
+font = pygame.font.Font(None, 48)  # Increased font size for better visibility
 
 # Create grid
 grid = [[0 for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
@@ -43,8 +45,10 @@ for mine_x, mine_y in mines:
             if 0 <= i < GRID_SIZE and 0 <= j < GRID_SIZE and (i, j) not in mines:
                 grid[i][j] += 1
 
-# Game over flag
+# Game variables
 game_over = False
+score = 0
+start_time = time.time()
 
 # Draw the grid lines and cells
 def draw_grid():
@@ -65,9 +69,11 @@ def draw_grid():
 
 # Reveal cells recursively (flood fill) for empty spaces
 def reveal_cell(x, y):
+    global score
     if revealed[x][y] or (x, y) in mines:
         return
     revealed[x][y] = True
+    score += 1  # Increment score for each cell revealed
     if grid[x][y] == 0:
         for i in range(x - 1, x + 2):
             for j in range(y - 1, y + 2):
@@ -95,6 +101,16 @@ def game_loop():
     while True:
         screen.fill(BACKGROUND_COLOR)
         
+        # Draw timer
+        elapsed_time = time.time() - start_time
+        time_left = max(0, TIME_LIMIT - int(elapsed_time))
+        timer_text = font.render(f"Time left: {time_left}s", True, TEXT_COLOR)
+        screen.blit(timer_text, (SCREEN_WIDTH // 2 - timer_text.get_width() // 2, 10))  # Centered at the top
+
+        if time_left == 0:
+            game_over_screen("Time's Up!")
+            return
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -115,7 +131,7 @@ def game_loop():
                 # Check if player has won
                 if check_win():
                     reveal_all_mines()  # Optional, to reveal everything
-                    game_over_screen("You Won!")
+                    game_over_screen(f"You Won! Score: {score}")
                     return
 
         # Draw the game grid
@@ -135,6 +151,12 @@ def game_over_screen(message):
     screen.fill(BACKGROUND_COLOR)
     text = font.render(message, True, TEXT_COLOR)
     screen.blit(text, (SCREEN_WIDTH // 2 - text.get_width() // 2, SCREEN_HEIGHT // 2 - text.get_height() // 2))
+    
+    # Display score if applicable
+    if "Score" in message:
+        score_text = font.render(f"Score: {score}", True, TEXT_COLOR)
+        screen.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, SCREEN_HEIGHT // 2 + 40))
+        
     pygame.display.update()
     
     pygame.time.wait(3000)
